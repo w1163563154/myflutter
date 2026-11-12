@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'animation_gallery.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -40,7 +41,7 @@ class _HomeShellState extends State<HomeShell>
             child: IndexedStack(
               index: _selected,
               children: const [
-                Center(child: Text('探索动画')),
+                AnimationGallery(),
                 EmptyTab(icon: Icons.movie_outlined, title: '视频内容即将上线'),
                 EmptyTab(icon: Icons.person_outline, title: '这里将记录你的灵感'),
               ],

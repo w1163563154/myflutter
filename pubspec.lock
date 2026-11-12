@@ -131,6 +131,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.17.0"
+  particle_sparks:
+    dependency: "direct main"
+    description:
+      path: "packages/particle_sparks"
+      relative: true
+    source: path
+    version: "0.1.0"
   path:
     dependency: transitive
     description:
@@ -176,6 +183,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.4.1"
+  tap_ripple:
+    dependency: "direct main"
+    description:
+      path: "packages/tap_ripple"
+      relative: true
+    source: path
+    version: "0.1.0"
   term_glyph:
     dependency: transitive
     description:
