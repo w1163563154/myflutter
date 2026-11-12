@@ -1,34 +1,39 @@
-# myflutter
+# 灵感动画集
 
-为 GitHub Issue #1 初始化的 Flutter 项目，保留 Flutter 官方计数器示例。支持 Android、iOS 和 Web；点击右下角 `+` 按钮可增加计数。
+Flutter 动画示例应用，支持 Android、iOS 和 Web。
 
-## 环境
+## 运行
 
-- 安装 Flutter，并确保其附带的 Dart 满足 `>=3.11.5 <4.0.0`（见 `pubspec.yaml`）。
-- 本项目生成及验证使用 Flutter `3.41.10-ohos-1.0.0`、Dart `3.11.5`。这是本机已安装的 Flutter 鸿蒙分支；项目没有添加鸿蒙平台或专用依赖。
-- Android 开发需要 Android SDK、JDK 和已接受的 Android SDK 许可。使用 `flutter doctor -v` 检查环境；必要时运行 `flutter doctor --android-licenses`。
-- iOS 开发需要 macOS、Xcode 及对应工具链；Windows 无法构建 iOS 应用。
-- Web 开发可使用 Chrome。
-
-## 开始运行
-
-在项目根目录执行：
+需要 Flutter 自带 Dart >=3.11.5 <4.0.0。当前验证环境为 Flutter 3.41.10-ohos-1.0.0 / Dart 3.11.5；应用没有使用鸿蒙专用 API 或第三方动画依赖。
 
 ```sh
 flutter pub get
 flutter run -d chrome
-```
-
-运行到 Android 或 iOS 模拟器/设备：
-
-```sh
+# 查看并选择已连接设备
 flutter devices
 flutter run -d <device-id>
 ```
 
-将 `<device-id>` 替换为设备列表中的实际 ID；iOS 命令需在配置好 Xcode 的 macOS 上执行。
+## 功能
 
-## 检查与构建
+- 动画集 / 视频集 / 我的三个底部 Tab，250ms 淡入与位移过渡，保留列表滚动状态。
+- 动画集包含粒子火花、点击水波两个演示入口。
+- 圆形、三角形、正方形点击后碎裂并恢复，可独立重复播放。
+- 在水波演示区域任意点击，最多同时播放 8 个水波，播放结束自动清理。
+- 遵循系统减少动画设置。视频集与我的目前为空状态页面。
+
+## 模块
+
+- `lib/home_shell.dart`：底部导航与切换。
+- `lib/animation_gallery.dart`：动画列表和演示路由。
+- `packages/particle_sparks`：独立 Flutter 包，导出 `ParticleSparksDemo`、`ParticleShape` 和 `SparkShape`。
+- `packages/tap_ripple`：独立 Flutter 包，导出 `TapRippleDemo`。
+
+两个包均通过本地 path 依赖接入，可单独执行分析与测试。
+
+## 验证
+
+在根目录执行：
 
 ```sh
 flutter analyze
@@ -36,25 +41,8 @@ flutter test
 flutter build web
 ```
 
-计数器测试验证初始值为 0，点击加号后变为 1。Web 构建输出位于 `build/web/`。
+再分别在 `packages/particle_sparks` 和 `packages/tap_ripple` 中执行 `flutter analyze`、`flutter test`。测试覆盖 Tab 切换、列表状态保留、两个演示的进入与返回、形状重播和恢复、水波重叠清理及退出安全性。
 
-配置好对应工具链后，可以执行：
+Web 输出位于 `build/web/`。Android 需要 Android SDK、JDK 与已接受的 SDK 许可，可执行 `flutter doctor -v` 检查；iOS 需要 macOS 与 Xcode，无法在 Windows 编译。本次未验证 Android/iOS 构建。
 
-```sh
-flutter build apk
-# 以下命令仅适用于 macOS；正式分发还需要配置签名。
-flutter build ios --no-codesign
-```
-
-## 目录
-
-- `lib/main.dart`：计数器应用入口和页面。
-- `test/widget_test.dart`：计数器交互测试。
-- `android/`、`ios/`、`web/`：各平台工程。
-- `pubspec.yaml`、`pubspec.lock`：依赖声明与应用依赖锁定文件。
-
-Android 应用 ID 与 iOS Bundle ID 使用模板默认值 `com.example.myflutter`。正式发布前请替换为自己的标识，并配置应用名称、图标和正式签名；Android 模板的 release 构建当前使用 debug 签名。
-
-## 本次验证
-
-已通过 `flutter analyze`、`flutter test`（计数器交互测试）及 `flutter build web`。iOS 工程仅生成，未在 Windows 上编译；Android 未执行构建，本机尚有未接受的 SDK 许可，且 doctor 检测到 Google Maven 网络连接异常。
+应用标识仍为模板值 `com.example.myflutter`，发布前需修改名称、图标、应用标识及签名；Android 模板 release 当前使用 debug 签名。

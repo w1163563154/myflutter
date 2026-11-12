@@ -6,7 +6,7 @@ class AnimationGallery extends StatelessWidget {
   const AnimationGallery({super.key});
   @override
   Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(24),
+    padding: const EdgeInsets.all(18),
     children: [
       const SizedBox(height: 20),
       Text(

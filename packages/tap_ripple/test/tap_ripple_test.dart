@@ -3,6 +3,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tap_ripple/tap_ripple.dart';
 
 void main() {
+  testWidgets('later ring keeps its original lifetime after first expires', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: TapRippleDemo()));
+    final area = find.byKey(const ValueKey('ripple-area'));
+    await tester.tap(area);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(area);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 460));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('ripple-ring')), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 410));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('ripple-ring')), findsNothing);
+  });
   testWidgets('rings start at tap, are bounded and expire', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: TapRippleDemo()));
     final area = find.byKey(const ValueKey('ripple-area'));

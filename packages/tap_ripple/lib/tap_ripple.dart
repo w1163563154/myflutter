@@ -50,9 +50,9 @@ class _TapRippleDemoState extends State<TapRippleDemo> {
                         ),
                         for (final ring in _rings)
                           Positioned.fill(
+                            key: ValueKey(ring.id),
                             child: IgnorePointer(
                               child: _Ripple(
-                                key: ValueKey(ring.id),
                                 point: ring.point,
                                 color: Theme.of(context).colorScheme.primary,
                                 onEnd: () {
@@ -82,7 +82,6 @@ class _TapRippleDemoState extends State<TapRippleDemo> {
 
 class _Ripple extends StatelessWidget {
   const _Ripple({
-    super.key,
     required this.point,
     required this.color,
     required this.onEnd,
