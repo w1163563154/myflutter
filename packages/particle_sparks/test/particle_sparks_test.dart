@@ -11,6 +11,7 @@ void main() {
       final shape = find.bySemanticsLabel(label);
       expect(shape, findsOneWidget);
       await tester.ensureVisible(shape);
+      await tester.pumpAndSettle();
       await tester.tap(shape);
       await tester.pump(const Duration(milliseconds: 180));
       expect(find.bySemanticsLabel('$label，正在碎裂'), findsOneWidget);

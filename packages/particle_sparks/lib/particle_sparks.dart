@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'src/particle_shape.dart';
+import 'src/image_particles.dart';
+export 'src/image_particles.dart' show ImageParticles;
 export 'src/particle_shape.dart' show ParticleShape, SparkShape;
 
 class ParticleSparksDemo extends StatelessWidget {
@@ -14,6 +16,8 @@ class ParticleSparksDemo extends StatelessWidget {
           Text('轻触形状，释放火花', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
           const Text('每一种形状，都藏着不同的能量。点击可重复播放。'),
+          const SizedBox(height: 28),
+          const ImageParticles(),
           const SizedBox(height: 28),
           Wrap(
             alignment: WrapAlignment.center,

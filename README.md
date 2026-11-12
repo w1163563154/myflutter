@@ -4,7 +4,7 @@ Flutter 动画示例应用，支持 Android、iOS 和 Web。
 
 ## 运行
 
-需要 Flutter 自带 Dart >=3.11.5 <4.0.0。当前验证环境为 Flutter 3.41.10-ohos-1.0.0 / Dart 3.11.5；应用没有使用鸿蒙专用 API 或第三方动画依赖。
+需要 Flutter 自带 Dart >=3.11.5 <4.0.0。当前验证环境为 Flutter 3.41.10-ohos-1.0.0 / Dart 3.11.5；应用没有使用鸿蒙专用 API；图片选择使用 Flutter 维护的 file_selector 插件，动画使用 Flutter 自身绘制。
 
 ```sh
 flutter pub get
@@ -19,6 +19,7 @@ flutter run -d <device-id>
 - 动画集 / 视频集 / 我的三个底部 Tab，250ms 淡入与位移过渡，保留列表滚动状态。
 - 动画集包含粒子火花、点击水波两个演示入口。
 - 圆形、三角形、正方形点击后碎裂并恢复，可独立重复播放。
+- 支持本地选择 PNG/JPEG/WebP 图片（最大 20 MB），点击预览后原图碎片扩散、旋转、淡出并恢复，可替换图片，不上传服务器。
 - 在水波演示区域任意点击，最多同时播放 8 个水波，播放结束自动清理。
 - 遵循系统减少动画设置。视频集与我的目前为空状态页面。
 
@@ -26,7 +27,7 @@ flutter run -d <device-id>
 
 - `lib/home_shell.dart`：底部导航与切换。
 - `lib/animation_gallery.dart`：动画列表和演示路由。
-- `packages/particle_sparks`：独立 Flutter 包，导出 `ParticleSparksDemo`、`ParticleShape` 和 `SparkShape`。
+- `packages/particle_sparks`：独立 Flutter 包，导出 `ParticleSparksDemo`、`ParticleShape`、`SparkShape` 和 `ImageParticles`。
 - `packages/tap_ripple`：独立 Flutter 包，导出 `TapRippleDemo`。
 
 两个包均通过本地 path 依赖接入，可单独执行分析与测试。
