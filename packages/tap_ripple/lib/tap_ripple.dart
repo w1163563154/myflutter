@@ -56,12 +56,13 @@ class _TapRippleDemoState extends State<TapRippleDemo> {
                                 point: ring.point,
                                 color: Theme.of(context).colorScheme.primary,
                                 onEnd: () {
-                                  if (mounted)
+                                  if (mounted) {
                                     setState(
                                       () => _rings.removeWhere(
                                         (r) => r.id == ring.id,
                                       ),
                                     );
+                                  }
                                 },
                               ),
                             ),
