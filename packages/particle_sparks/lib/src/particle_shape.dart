@@ -110,33 +110,37 @@ class _ShapePainter extends CustomPainter {
       return;
     }
     final t = progress!;
-    // Grid fragments originate inside the actual silhouette, preserving its identity.
-    for (var x = -42; x <= 42; x += 12) {
-      for (var y = -42; y <= 42; y += 12) {
-        final origin = Offset(x.toDouble(), y.toDouble());
+    // Fixed seed keeps each fragment on one continuous, irregular trajectory.
+    final random = math.Random(shape.index + 71);
+    for (var x = -42; x <= 42; x += 6) {
+      for (var y = -42; y <= 42; y += 6) {
+        final origin = Offset(
+          x + random.nextDouble() * 5 - 2.5,
+          y + random.nextDouble() * 5 - 2.5,
+        );
+        final angle = random.nextDouble() * math.pi * 2;
+        final speed = 35 + random.nextDouble() * 105;
+        final gravity = 20 + random.nextDouble() * 55;
+        final spin = (random.nextDouble() - .5) * 12;
+        final side = 2 + random.nextDouble() * 3;
+        final fade = (1 - t * (1 + random.nextDouble() * .6)).clamp(0.0, 1.0);
         if (!_inside(origin)) continue;
-        final angle =
-            math.atan2(origin.dy, origin.dx) + math.sin(x * 7 + y * 13) * .35;
-        final speed = 35 + ((x * 17 + y * 31).abs() % 45);
         final displacement = Offset(
           math.cos(angle) * speed * t,
-          math.sin(angle) * speed * t + 35 * t * t,
+          math.sin(angle) * speed * t + gravity * t * t,
         );
-        paint.color = shape.color.withValues(alpha: 1 - t);
+        paint.color = shape.color.withValues(alpha: fade);
         canvas.save();
         canvas.translate(
           center.dx + origin.dx + displacement.dx,
           center.dy + origin.dy + displacement.dy,
         );
-        canvas.rotate(t * math.pi * math.sin(x + y));
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromCenter(
-              center: Offset.zero,
-              width: 10 * (1 - t * .7),
-              height: 10 * (1 - t * .7),
-            ),
-            const Radius.circular(2),
+        canvas.rotate(spin * t);
+        canvas.drawRect(
+          Rect.fromCenter(
+            center: Offset.zero,
+            width: side * (1 - t * .5),
+            height: side * (1 - t * .5),
           ),
           paint,
         );

@@ -209,43 +209,47 @@ class ImageFragmentPainter extends CustomPainter {
       return;
     }
     final t = progress!;
-    const columns = 16;
-    final rows = (columns * source.height / source.width).round().clamp(1, 24);
-    paint.color = Colors.white.withValues(alpha: 1 - t);
+    const cell = 5.0;
+    final columns = (target.width / cell).ceil();
+    final rows = (target.height / cell).ceil();
+    final random = math.Random(419);
     for (var y = 0; y < rows; y++) {
       for (var x = 0; x < columns; x++) {
-        final src = Rect.fromLTRB(
-          x * source.width / columns,
-          y * source.height / rows,
-          (x + 1) * source.width / columns,
-          (y + 1) * source.height / rows,
+        final dx = x * cell;
+        final dy = y * cell;
+        final width = math.min(cell, target.width - dx);
+        final height = math.min(cell, target.height - dy);
+        final src = Rect.fromLTWH(
+          dx / target.width * source.width,
+          dy / target.height * source.height,
+          width / target.width * source.width,
+          height / target.height * source.height,
         );
-        final dst = Rect.fromLTWH(
-          target.left + x * target.width / columns,
-          target.top + y * target.height / rows,
-          target.width / columns,
-          target.height / rows,
+        final origin = Offset(
+          target.left + dx + width / 2,
+          target.top + dy + height / 2,
         );
-        final angle = math.atan2(y - rows / 2, x - columns / 2);
-        final speed = 30 + (x * 13 + y * 23) % 35;
+        final angle = random.nextDouble() * math.pi * 2;
+        final speed = 30 + random.nextDouble() * 110;
+        final gravity = 20 + random.nextDouble() * 65;
+        final spin = (random.nextDouble() - .5) * 14;
+        final side = 1.8 + random.nextDouble() * 2.8;
+        final fade = (1 - t * (1 + random.nextDouble() * .7)).clamp(0.0, 1.0);
         final center =
-            dst.center +
+            origin +
             Offset(
               math.cos(angle) * speed * t,
-              math.sin(angle) * speed * t + 35 * t * t,
+              math.sin(angle) * speed * t + gravity * t * t,
             );
+        paint.color = Colors.white.withValues(alpha: fade);
         canvas.save();
         canvas.translate(center.dx, center.dy);
-        canvas.rotate(math.sin(x * 3 + y) * t * 2);
-        canvas.scale(1 - t * .4);
+        canvas.rotate(spin * t);
+        final extent = side * (1 - t * .5);
         canvas.drawImageRect(
           image,
           src,
-          Rect.fromCenter(
-            center: Offset.zero,
-            width: dst.width,
-            height: dst.height,
-          ),
+          Rect.fromCenter(center: Offset.zero, width: extent, height: extent),
           paint,
         );
         canvas.restore();
