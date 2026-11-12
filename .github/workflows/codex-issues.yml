@@ -18,7 +18,7 @@ jobs:
     if: >-
       github.actor == 'w1163563154' &&
       (github.event_name == 'workflow_dispatch' || !github.event.issue.pull_request)
-    runs-on: [self-hosted, Windows, X64, codex-myflutter]
+    runs-on: [codex-myflutter]
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
