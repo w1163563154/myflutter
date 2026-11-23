@@ -24,11 +24,79 @@ class MemoryJournal extends JournalStore {
   }
 }
 
+class FailingPinJournal extends MemoryJournal {
+  FailingPinJournal() {
+    items.add(JournalNote(1, '日常', '买花', DateTime(2026, 11, 16)));
+  }
+
+  bool fail = true;
+
+  @override
+  Future<void> setPinned(int id, bool pinned) async {
+    if (fail) throw StateError('write failed');
+    final note = items.single;
+    items[0] = JournalNote(
+      note.id,
+      note.title,
+      note.body,
+      note.updated,
+      pinned: pinned,
+    );
+  }
+}
+
 void main() {
   test('weekday follows local date', () {
     expect(journalDate(DateTime(2026, 11, 16)), '11月16日 · 周一');
     expect(journalDate(DateTime(2026, 11, 15)), '11月15日 · 周日');
   });
+  testWidgets(
+    'pin control retains an active search and permits retry after failure',
+    (tester) async {
+      final store = FailingPinJournal();
+      final vault = VaultService(store);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: journalTheme(),
+          home: NotesPage(store: store, vault: vault),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final search = find.byKey(const Key('note-search'));
+      await tester.enterText(search, '买花');
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('置顶'));
+      await tester.pumpAndSettle();
+      expect(find.text('置顶失败，请重试'), findsOneWidget);
+      expect(tester.widget<TextField>(search).controller!.text, '买花');
+      expect(find.byTooltip('置顶'), findsOneWidget);
+
+      store.fail = false;
+      await tester.tap(find.byTooltip('置顶'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('取消置顶'), findsOneWidget);
+      expect(tester.widget<TextField>(search).controller!.text, '买花');
+
+      store.fail = true;
+      await tester.tap(find.byTooltip('取消置顶'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      expect(find.text('取消置顶失败，请重试'), findsOneWidget);
+      expect(find.byTooltip('取消置顶'), findsOneWidget);
+      expect(tester.widget<TextField>(search).controller!.text, '买花');
+
+      store.fail = false;
+      await tester.tap(find.byTooltip('取消置顶'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('置顶'), findsOneWidget);
+      expect(tester.widget<TextField>(search).controller!.text, '买花');
+
+      await tester.pumpWidget(const SizedBox());
+      vault.dispose();
+    },
+  );
   testWidgets('note add, prominent date and edit', (tester) async {
     final store = MemoryJournal();
     final vault = VaultService(store);

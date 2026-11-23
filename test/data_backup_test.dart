@@ -79,6 +79,41 @@ void main() {
       expect(() => BackupData.parse(jsonEncode(json)), throwsFormatException);
     },
   );
+  test(
+    'v1 backups restore and v2 round trips pin without changing CSV order',
+    () async {
+      final oldBackup = BackupData.parse(
+        jsonEncode({
+          'format': 'daily-journal-backup',
+          'version': 1,
+          'notes': [
+            {'id': 1, 'title': 'old', 'body': '', 'updated': 100},
+            {'id': 2, 'title': 'new', 'body': '', 'updated': 200},
+          ],
+          'records': [],
+          'vault_meta': [],
+          'vault_entries': [],
+        }),
+      );
+      await service.restore(oldBackup);
+      final notes = await journal.notes();
+      expect(notes.map((note) => note.title), ['new', 'old']);
+      final db = await journal.database;
+      await journal.setPinned(notes.last.id, true);
+      final csv = await service.exportNotes();
+      expect(csv.split('\r\n').first, '\ufeff"标题","正文","更新时间"');
+      expect(csv.indexOf('"new"'), lessThan(csv.indexOf('"old"')));
+      final backupText = await service.createBackup();
+      final backupJson = jsonDecode(backupText) as Map<String, dynamic>;
+      expect(backupJson['version'], 2);
+      final backup = BackupData.parse(backupText);
+      await db.delete('notes');
+      await service.restore(backup);
+      expect((await journal.notes()).map((note) => note.title), ['old', 'new']);
+      final rows = await db.query('notes', orderBy: 'updated ASC');
+      expect(rows.map((row) => row['pinned']), [1, 0]);
+    },
+  );
   test('database failure rolls back imported notes and records', () async {
     await journal.saveNote(title: '保留', body: '');
     await records.add(LocalRecord(date: DateTime(2026), name: '保留'));

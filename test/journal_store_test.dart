@@ -32,6 +32,65 @@ void main() {
       throwsArgumentError,
     );
   });
+  test(
+    'v1 database migrates and persisted pin takes priority in search',
+    () async {
+      final legacy = await databaseFactoryFfi.openDatabase(
+        store.path!,
+        options: OpenDatabaseOptions(
+          version: 1,
+          onCreate: (db, _) => db.execute(
+            'CREATE TABLE notes(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, body TEXT NOT NULL, updated INTEGER NOT NULL)',
+          ),
+        ),
+      );
+      await legacy.insert('notes', {
+        'id': 1,
+        'title': 'old',
+        'body': 'match',
+        'updated': 100,
+      });
+      await legacy.insert('notes', {
+        'id': 2,
+        'title': 'new',
+        'body': 'match',
+        'updated': 200,
+      });
+      await legacy.close();
+
+      expect((await store.notes()).map((note) => note.id), [2, 1]);
+      expect((await store.notes()).every((note) => !note.pinned), isTrue);
+      await store.setPinned(1, true);
+      await store.close();
+      final hits = await store.notes('match');
+      expect(hits.map((note) => note.id), [1, 2]);
+      expect(hits.first.updated.millisecondsSinceEpoch, 100);
+      expect(hits.first.pinned, isTrue);
+      final third = await store.saveNote(title: 'third', body: 'match');
+      final db = await store.database;
+      await db.update(
+        'notes',
+        {'updated': 100},
+        where: 'id = ?',
+        whereArgs: [third],
+      );
+      expect((await store.notes()).last.pinned, isFalse);
+      await store.setPinned(third, true);
+      expect((await store.notes('match')).map((note) => note.id), [
+        third,
+        1,
+        2,
+      ]);
+
+      await store.saveNote(id: 1, title: 'old, edited', body: 'match');
+      final edited = await store.notes('match');
+      expect(edited.map((note) => note.id), [1, third, 2]);
+      expect(edited.first.pinned, isTrue);
+
+      await store.setPinned(1, false);
+      expect((await store.notes()).map((note) => note.id), [third, 1, 2]);
+    },
+  );
   test('vault encrypted roundtrip, wrong master, lock and reopen', () async {
     final vault = VaultService(store, iterations: 1000);
     expect(await vault.isConfigured(), false);

@@ -17,6 +17,7 @@ class NotesPage extends StatefulWidget {
 
 class _NotesPageState extends State<NotesPage> {
   final _search = TextEditingController();
+  final _pinWrites = <int>{};
   List<JournalNote> _notes = [];
   bool _busy = true, _failed = false, _vault = false;
   int _generation = 0;
@@ -44,18 +45,21 @@ class _NotesPageState extends State<NotesPage> {
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool showProgress = true}) async {
     final generation = ++_generation;
-    setState(() {
-      _busy = true;
-      _failed = false;
-    });
+    if (showProgress) {
+      setState(() {
+        _busy = true;
+        _failed = false;
+      });
+    }
     try {
       final notes = await widget.store.notes(_search.text);
       if (mounted && generation == _generation) {
         setState(() {
           _notes = notes;
           _busy = false;
+          _failed = false;
         });
       }
     } catch (_) {
@@ -65,6 +69,23 @@ class _NotesPageState extends State<NotesPage> {
           _busy = false;
         });
       }
+    }
+  }
+
+  Future<void> _togglePin(JournalNote note) async {
+    if (!_pinWrites.add(note.id)) return;
+    setState(() {});
+    try {
+      await widget.store.setPinned(note.id, !note.pinned);
+      if (mounted) await _load(showProgress: false);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(note.pinned ? '取消置顶失败，请重试' : '置顶失败，请重试')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _pinWrites.remove(note.id));
     }
   }
 
@@ -236,7 +257,30 @@ class _NotesPageState extends State<NotesPage> {
                       style: const TextStyle(color: Color(0xFF917D67)),
                     ),
                   ],
-                  DateStamp(date: n.updated),
+                  DateStamp(
+                    date: n.updated,
+                    trailing: IconButton(
+                      tooltip: n.pinned ? '取消置顶' : '置顶',
+                      isSelected: n.pinned,
+                      iconSize: 20,
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size.square(48),
+                        tapTargetSize: MaterialTapTargetSize.padded,
+                        visualDensity: VisualDensity.standard,
+                      ),
+                      icon: const Icon(
+                        Icons.push_pin_outlined,
+                        color: Color(0xFF917D67),
+                      ),
+                      selectedIcon: const Icon(
+                        Icons.push_pin,
+                        color: journalAccent,
+                      ),
+                      onPressed: _pinWrites.contains(n.id)
+                          ? null
+                          : () => _togglePin(n),
+                    ),
+                  ),
                 ],
               ),
             ),

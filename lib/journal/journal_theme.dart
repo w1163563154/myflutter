@@ -169,8 +169,9 @@ class DayBanner extends StatelessWidget {
 }
 
 class DateStamp extends StatelessWidget {
-  const DateStamp({super.key, required this.date});
+  const DateStamp({super.key, required this.date, this.trailing});
   final DateTime date;
+  final Widget? trailing;
   @override
   Widget build(BuildContext context) => Column(
     children: [
@@ -191,6 +192,7 @@ class DateStamp extends StatelessWidget {
             journalTime(date),
             style: const TextStyle(fontSize: 12, color: Color(0xFFAA9274)),
           ),
+          ?trailing,
         ],
       ),
     ],

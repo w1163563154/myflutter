@@ -20,7 +20,9 @@ class BackupData {
     }
     try {
       final root = jsonDecode(text) as Map<String, dynamic>;
-      if (root['format'] != 'daily-journal-backup' || root['version'] != 1) {
+      final version = root['version'];
+      if (root['format'] != 'daily-journal-backup' ||
+          (version != 1 && version != 2)) {
         throw const FormatException('不支持的备份格式或版本');
       }
       List<Map<String, Object?>> table(String name, Map<String, Type> columns) {
@@ -54,7 +56,12 @@ class BackupData {
         'title': String,
         'body': String,
         'updated': int,
+        if (version == 2) 'pinned': int,
       });
+      if (version == 2 &&
+          notes.any((row) => row['pinned'] != 0 && row['pinned'] != 1)) {
+        throw const FormatException('笔记置顶状态无效');
+      }
       final records = table('records', {
         'id': int,
         'record_date': String,
@@ -145,7 +152,7 @@ class DataBackup {
     );
     return jsonEncode({
       'format': 'daily-journal-backup',
-      'version': 1,
+      'version': 2,
       'created_at': DateTime.now().toUtc().toIso8601String(),
       ...data,
       'records': await r.query('records'),

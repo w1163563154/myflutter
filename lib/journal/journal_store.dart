@@ -4,10 +4,17 @@ import '../records/database_native.dart'
     if (dart.library.js_interop) '../records/database_web.dart';
 
 class JournalNote {
-  const JournalNote(this.id, this.title, this.body, this.updated);
+  const JournalNote(
+    this.id,
+    this.title,
+    this.body,
+    this.updated, {
+    this.pinned = false,
+  });
   final int id;
   final String title, body;
   final DateTime updated;
+  final bool pinned;
   String get displayTitle => title.isEmpty ? body.split('\n').first : title;
 }
 
@@ -16,6 +23,8 @@ class JournalStore {
   static final instance = JournalStore();
   final DatabaseFactory? factory;
   final String? path;
+  static const _pinColumn =
+      'pinned INTEGER NOT NULL DEFAULT 0 CHECK(pinned IN (0,1))';
   Future<Database>? _opening;
   Future<Database> get database => _opening ??= _open();
   Future<Database> _open() async {
@@ -29,10 +38,15 @@ class JournalStore {
       return await f.openDatabase(
         path ?? localDatabasePath(await f.getDatabasesPath(), 'journal.db'),
         options: OpenDatabaseOptions(
-          version: 1,
+          version: 2,
+          onUpgrade: (db, oldVersion, _) async {
+            if (oldVersion < 2) {
+              await db.execute('ALTER TABLE notes ADD COLUMN $_pinColumn');
+            }
+          },
           onCreate: (db, _) async {
             await db.execute(
-              'CREATE TABLE notes(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, body TEXT NOT NULL, updated INTEGER NOT NULL)',
+              'CREATE TABLE notes(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, body TEXT NOT NULL, updated INTEGER NOT NULL, $_pinColumn)',
             );
             await db.execute(
               'CREATE TABLE vault_meta(id INTEGER PRIMARY KEY CHECK(id=1), salt TEXT NOT NULL, iterations INTEGER NOT NULL, verifier TEXT NOT NULL)',
@@ -56,7 +70,7 @@ class JournalStore {
       'notes',
       where: 'instr(lower(title),lower(?))>0 OR instr(lower(body),lower(?))>0',
       whereArgs: [q, q],
-      orderBy: 'updated DESC, id DESC',
+      orderBy: 'pinned DESC, updated DESC, id DESC',
     );
     return rows
         .map(
@@ -65,6 +79,7 @@ class JournalStore {
             r['title'] as String,
             r['body'] as String,
             DateTime.fromMillisecondsSinceEpoch(r['updated'] as int),
+            pinned: r['pinned'] == 1,
           ),
         )
         .toList();
@@ -88,6 +103,16 @@ class JournalStore {
     final count = await db.update('notes', row, where: 'id=?', whereArgs: [id]);
     if (count != 1) throw StateError('笔记不存在');
     return id;
+  }
+
+  Future<void> setPinned(int id, bool pinned) async {
+    final count = await (await database).update(
+      'notes',
+      {'pinned': pinned ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (count != 1) throw StateError('笔记不存在');
   }
 
   Future<void> close() async {
