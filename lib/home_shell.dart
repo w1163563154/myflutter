@@ -1,93 +1,61 @@
 import 'package:flutter/material.dart';
-import 'animation_gallery.dart';
+import 'journal/journal_store.dart';
+import 'journal/notes_page.dart';
+import 'journal/vault_service.dart';
+import 'records/records_page.dart';
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  const HomeShell({super.key, this.store});
+  final JournalStore? store;
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell>
-    with SingleTickerProviderStateMixin {
+class _HomeShellState extends State<HomeShell> {
   int _selected = 0;
-  late final _transition = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 250),
-    value: 1,
-  );
-  late final Animation<double> _curve = _transition.drive(
-    CurveTween(curve: Curves.easeOutCubic),
-  );
+  bool _courierVisited = false;
+  late final _store = widget.store ?? JournalStore.instance;
+  late final _vault = widget.store == null
+      ? VaultService.instance
+      : VaultService(_store);
   @override
   void dispose() {
-    _transition.dispose();
+    if (widget.store != null) {
+      _vault.dispose();
+    }
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    final reduced = MediaQuery.disableAnimationsOf(context);
-    return Scaffold(
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: reduced ? const AlwaysStoppedAnimation(1) : _curve,
-          child: SlideTransition(
-            position: reduced
-                ? const AlwaysStoppedAnimation(Offset.zero)
-                : Tween(
-                    begin: const Offset(0, .025),
-                    end: Offset.zero,
-                  ).animate(_curve),
-            child: IndexedStack(
-              index: _selected,
-              children: const [
-                AnimationGallery(),
-                EmptyTab(icon: Icons.movie_outlined, title: '视频内容即将上线'),
-                EmptyTab(icon: Icons.person_outline, title: '这里将记录你的灵感'),
-              ],
-            ),
-          ),
-        ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selected,
-        onDestinationSelected: (index) {
-          if (index == _selected) return;
-          setState(() => _selected = index);
-          if (reduced) {
-            _transition.value = 1;
-          } else {
-            _transition.forward(from: 0);
-          }
-        },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.auto_awesome), label: '动画集'),
-          NavigationDestination(icon: Icon(Icons.movie_outlined), label: '视频集'),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: '我的'),
-        ],
-      ),
-    );
-  }
-}
-
-class EmptyTab extends StatelessWidget {
-  const EmptyTab({super.key, required this.icon, required this.title});
-  final IconData icon;
-  final String title;
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(
+      child: IndexedStack(
+        index: _selected,
         children: [
-          Icon(icon, size: 56, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 20),
-          Text(title, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          const Text('敬请期待'),
+          NotesPage(store: _store, vault: _vault),
+          if (_courierVisited) const RecordsPage() else const SizedBox.shrink(),
         ],
       ),
+    ),
+    bottomNavigationBar: NavigationBar(
+      selectedIndex: _selected,
+      onDestinationSelected: (index) => setState(() {
+        if (index != _selected) {
+          _vault.lock();
+        }
+        _selected = index;
+        if (index == 1) _courierVisited = true;
+      }),
+      destinations: const [
+        NavigationDestination(
+          icon: Icon(Icons.note_alt_outlined),
+          label: '个人记录',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.inventory_2_outlined),
+          label: '快递记录',
+        ),
+      ],
     ),
   );
 }
