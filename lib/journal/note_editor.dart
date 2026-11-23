@@ -11,6 +11,16 @@ class NoteEditor extends StatefulWidget {
 }
 
 class _NoteEditorState extends State<NoteEditor> {
+  static const _fieldRadius = BorderRadius.all(Radius.circular(14));
+  static const _fieldBorder = OutlineInputBorder(
+    borderRadius: _fieldRadius,
+    borderSide: BorderSide(color: Color(0xFFDDCBB0)),
+  );
+  static const _focusedBorder = OutlineInputBorder(
+    borderRadius: _fieldRadius,
+    borderSide: BorderSide(color: journalAccent, width: 1.5),
+  );
+
   late final _title = TextEditingController(text: widget.note?.title ?? '');
   late final _body = TextEditingController(text: widget.note?.body ?? '');
   bool _saving = false, _allowPop = false;
@@ -64,6 +74,30 @@ class _NoteEditorState extends State<NoteEditor> {
     }
   }
 
+  InputDecoration _fieldDecoration({
+    required String label,
+    required String hint,
+  }) => InputDecoration(
+    labelText: label,
+    floatingLabelBehavior: FloatingLabelBehavior.always,
+    floatingLabelStyle: const TextStyle(
+      color: journalInk,
+      fontWeight: FontWeight.w600,
+    ),
+    hintText: hint,
+    hintStyle: const TextStyle(
+      color: Color(0xFF876F58),
+      fontSize: 14,
+      fontWeight: FontWeight.w400,
+    ),
+    filled: true,
+    fillColor: journalPaper,
+    border: _fieldBorder,
+    enabledBorder: _fieldBorder,
+    disabledBorder: _fieldBorder,
+    focusedBorder: _focusedBorder,
+  );
+
   @override
   Widget build(BuildContext context) => PopScope(
     canPop: _allowPop,
@@ -89,49 +123,57 @@ class _NoteEditorState extends State<NoteEditor> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
             child: ListView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
               children: [
-                Text(
-                  journalDate(widget.note?.updated ?? DateTime.now()),
-                  style: const TextStyle(
-                    color: Color(0xFF8D5F40),
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 15,
+                      color: Color(0xFF8D5F40),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        journalDate(widget.note?.updated ?? DateTime.now()),
+                        style: const TextStyle(
+                          color: Color(0xFF8D5F40),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 TextField(
                   key: const Key('note-title'),
                   controller: _title,
                   enabled: !_saving,
                   style: const TextStyle(
-                    fontSize: 25,
+                    fontSize: 20,
                     fontWeight: FontWeight.w600,
                   ),
-                  decoration: const InputDecoration(
-                    hintText: '写个标题',
-                    fillColor: Colors.transparent,
-                  ),
+                  decoration: _fieldDecoration(label: '标题', hint: '写个标题'),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 20),
                 TextField(
                   key: const Key('note-body'),
                   controller: _body,
                   enabled: !_saving,
-                  minLines: 12,
+                  minLines: 8,
                   maxLines: null,
                   style: const TextStyle(fontSize: 16, height: 1.9),
-                  decoration: const InputDecoration(
-                    hintText: '记下日常的小事',
-                    fillColor: Colors.transparent,
-                  ),
+                  decoration: _fieldDecoration(label: '正文', hint: '记下日常的小事'),
                 ),
-                if (_error != null)
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
                   Text(
                     _error!,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                     ),
                   ),
+                ],
               ],
             ),
           ),

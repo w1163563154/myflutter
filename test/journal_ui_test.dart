@@ -238,6 +238,15 @@ void main() {
     );
     await tester.tap(find.text('写一笔'));
     await tester.pumpAndSettle();
+    final titleField = find.byKey(const Key('note-title'));
+    final bodyField = find.byKey(const Key('note-body'));
+    for (final (finder, label) in [(titleField, '标题'), (bodyField, '正文')]) {
+      final field = tester.widget<TextField>(finder);
+      expect(field.decoration?.labelText, label);
+      expect(field.decoration?.enabledBorder, isA<OutlineInputBorder>());
+      expect(field.decoration?.hintStyle?.color, isNot(journalInk));
+      expect(field.decoration?.hintStyle?.color, isNotNull);
+    }
     await tester.enterText(find.byKey(const Key('note-title')), '日常');
     await tester.enterText(find.byKey(const Key('note-body')), '买花');
     await tester.tap(find.text('保存'));
