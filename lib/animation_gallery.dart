@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:particle_sparks/particle_sparks.dart';
 import 'package:tap_ripple/tap_ripple.dart';
+import 'image_suction_demo.dart';
+import 'solar_system_page.dart';
 
 class AnimationGallery extends StatelessWidget {
   const AnimationGallery({super.key});
@@ -19,6 +21,14 @@ class AnimationGallery extends StatelessWidget {
       const Text('触碰、发现，让每个瞬间鲜活起来。'),
       const SizedBox(height: 32),
       _DemoCard(
+        title: '3D 太阳系',
+        subtitle: '环绕太阳，探索行星的公转与自转',
+        icon: Icons.public,
+        color: const Color(0xFFB9812C),
+        page: const SolarSystemPage(),
+      ),
+      const SizedBox(height: 16),
+      _DemoCard(
         title: '粒子火花动画',
         subtitle: '轻触几何形状，释放绚丽粒子',
         icon: Icons.auto_awesome,
@@ -32,6 +42,14 @@ class AnimationGallery extends StatelessWidget {
         icon: Icons.water_drop_outlined,
         color: const Color(0xFF258AA5),
         page: const TapRippleDemo(),
+      ),
+      const SizedBox(height: 16),
+      _DemoCard(
+        title: '图片吸入动画',
+        subtitle: '将风景拉伸扭曲，卷入一角',
+        icon: Icons.south_east,
+        color: const Color(0xFFC06F50),
+        page: const ImageSuctionDemo(),
       ),
     ],
   );

@@ -6,11 +6,13 @@ void main() {
   for (final title in ['粒子火花动画', '点击水波动画']) {
     testWidgets('$title opens and returns to gallery', (tester) async {
       await tester.pumpWidget(const MyApp());
+      await tester.tap(find.text('小工具'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(title));
       await tester.pumpAndSettle();
       expect(find.byType(AppBar), findsOneWidget);
       expect(find.text(title), findsOneWidget);
-      await tester.pageBack();
+      await tester.tap(find.byType(BackButton).last);
       await tester.pumpAndSettle();
       expect(find.text('探索动画'), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -22,15 +24,17 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(const MyApp());
+    await tester.tap(find.text('小工具'));
+    await tester.pumpAndSettle();
     await tester.drag(find.byType(ListView), const Offset(0, -130));
     await tester.pumpAndSettle();
     final before = tester
         .state<ScrollableState>(find.byType(Scrollable).first)
         .position
         .pixels;
-    await tester.tap(find.text('我的'));
+    await tester.tap(find.text('粒子火花动画'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('动画集'));
+    await tester.tap(find.byType(BackButton).last);
     await tester.pumpAndSettle();
     expect(
       tester
