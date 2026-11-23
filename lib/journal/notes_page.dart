@@ -239,24 +239,6 @@ class _NotesPageState extends State<NotesPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    n.displayTitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (n.body.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      n.body,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Color(0xFF917D67)),
-                    ),
-                  ],
                   DateStamp(
                     date: n.updated,
                     trailing: IconButton(
@@ -281,6 +263,24 @@ class _NotesPageState extends State<NotesPage> {
                           : () => _togglePin(n),
                     ),
                   ),
+                  Text(
+                    n.displayTitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (n.body.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      n.body,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Color(0xFF917D67)),
+                    ),
+                  ],
                 ],
               ),
             ),

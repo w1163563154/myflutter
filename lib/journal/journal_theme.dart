@@ -175,7 +175,6 @@ class DateStamp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      const Divider(color: Color(0xFFE5D6BE), height: 26),
       Row(
         children: [
           Expanded(
@@ -195,6 +194,7 @@ class DateStamp extends StatelessWidget {
           ?trailing,
         ],
       ),
+      const Divider(color: Color(0xFFE5D6BE), height: 16),
     ],
   );
 }

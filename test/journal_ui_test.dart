@@ -116,6 +116,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('日常'), findsOneWidget);
     expect(find.text('11月16日 · 周一'), findsOneWidget);
+    final dateY = tester.getTopLeft(find.text('11月16日 · 周一')).dy;
+    final titleY = tester.getTopLeft(find.text('日常')).dy;
+    final bodyY = tester.getTopLeft(find.text('买花')).dy;
+    expect(dateY, lessThan(titleY));
+    expect(titleY, lessThan(bodyY));
     await tester.tap(find.text('日常'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('note-body')), '买花和取件');
