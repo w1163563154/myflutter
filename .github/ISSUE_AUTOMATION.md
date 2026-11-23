@@ -1,13 +1,13 @@
 # Local Issue automation setup
 
 Runner directory: `D:\actions-runner`, label `codex-myflutter`.
-Workflow responds only to repository owner `w1163563154`, to Issue opened/edited/reopened and Issue comments created/edited. PR comments are excluded. One dedicated runner executes one job at a time. Runs use Actions checkout under runner `_work`, not the interactive development folder.
+The Codex desktop automation polls GitHub Issues from the local workspace. This GitHub Actions workflow is a manual fallback for repository owner `w1163563154`. One dedicated runner executes one job at a time. Runs use an Actions checkout under runner `_work`.
 
 Before activation:
 1. As the Windows user who runs the runner, execute `codex login`, then `codex login status`.
 2. Ensure Git, Node, Flutter and Codex are on that user's PATH. Jobs use Windows PowerShell, no PowerShell 7 install required.
 3. Register runner with label `codex-myflutter`, then run `run.cmd` under that user. Do not run as LocalSystem: Codex login belongs to the current user.
-4. Put workflow and script on the repository DEFAULT branch, currently `issue-1-flutter-starter`.
+4. Publish the workflow and script on the repository default branch.
 5. In Settings > Actions > General > Workflow permissions, allow GitHub Actions to create/approve pull requests if needed. Script requests contents and pull-requests write permission; repository policies still apply.
 6. Run workflow_dispatch with an existing open Issue number for smoke validation.
 

@@ -1,9 +1,5 @@
 name: Codex Issue worker
 on:
-  issues:
-    types: [opened, edited, reopened]
-  issue_comment:
-    types: [created, edited]
   workflow_dispatch:
     inputs:
       issue_number:
@@ -15,9 +11,7 @@ permissions:
   pull-requests: write
 jobs:
   resolve:
-    if: >-
-      github.actor == 'w1163563154' &&
-      (github.event_name == 'workflow_dispatch' || !github.event.issue.pull_request)
+    if: github.actor == 'w1163563154'
     runs-on: [codex-myflutter]
     timeout-minutes: 90
     steps:
@@ -29,5 +23,5 @@ jobs:
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
-          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
         run: ./.github/scripts/resolve-issue.ps1
