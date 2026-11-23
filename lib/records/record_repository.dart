@@ -5,7 +5,7 @@ import 'record.dart';
 import 'database_paths.dart';
 
 abstract interface class RecordRepository {
-  Future<void> add(LocalRecord record);
+  Future<int> add(LocalRecord record);
   Future<void> update(LocalRecord record);
   Future<void> delete(int id);
   Future<List<LocalRecord>> query(
@@ -75,11 +75,11 @@ class SqliteRecordRepository implements RecordRepository {
   }
 
   @override
-  Future<void> add(LocalRecord record) async {
+  Future<int> add(LocalRecord record) async {
     if (record.date.year < 1900 || record.date.year > 2100) {
       throw ArgumentError('日期超出范围');
     }
-    await (await _database()).insert('records', {
+    return (await _database()).insert('records', {
       if (record.id != null) 'id': record.id,
       ...record.toMap(),
     });

@@ -81,14 +81,16 @@ class _RecordFormState extends State<RecordForm> {
       note: recordValue(_note.text),
     );
     try {
+      final int id;
       if (widget.record == null) {
-        await widget.repository.add(record);
+        id = await widget.repository.add(record);
       } else {
         await widget.repository.update(record);
+        id = record.id!;
       }
       if (mounted) {
         setState(() => _allowPop = true);
-        Navigator.of(context).pop(record);
+        Navigator.of(context).pop(id);
       }
     } catch (_) {
       if (mounted) {

@@ -45,14 +45,14 @@ class _NoteEditorState extends State<NoteEditor> {
       _error = null;
     });
     try {
-      await widget.store.saveNote(
+      final id = await widget.store.saveNote(
         id: widget.note?.id,
         title: _title.text,
         body: _body.text,
       );
       if (mounted) {
         setState(() => _allowPop = true);
-        Navigator.pop(context, true);
+        Navigator.pop(context, id);
       }
     } catch (_) {
       if (mounted) {

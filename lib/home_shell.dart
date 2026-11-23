@@ -32,8 +32,11 @@ class _HomeShellState extends State<HomeShell> {
       child: IndexedStack(
         index: _selected,
         children: [
-          NotesPage(store: _store, vault: _vault),
-          if (_courierVisited) const RecordsPage() else const SizedBox.shrink(),
+          NotesPage(store: _store, vault: _vault, active: _selected == 0),
+          if (_courierVisited)
+            RecordsPage(active: _selected == 1)
+          else
+            const SizedBox.shrink(),
         ],
       ),
     ),

@@ -6,18 +6,31 @@ import 'note_editor.dart';
 import 'vault_page.dart';
 import 'vault_service.dart';
 import '../data/data_entry.dart';
+import '../records/record_motion.dart';
 
 class NotesPage extends StatefulWidget {
-  const NotesPage({super.key, required this.store, required this.vault});
+  const NotesPage({
+    super.key,
+    required this.store,
+    required this.vault,
+    this.active = true,
+  });
   final JournalStore store;
   final VaultService vault;
+  final bool active;
   @override
   State<NotesPage> createState() => _NotesPageState();
 }
 
-class _NotesPageState extends State<NotesPage> {
+class _NotesPageState extends State<NotesPage> with TickerProviderStateMixin {
   final _search = TextEditingController();
   final _pinWrites = <int>{};
+  final _viewport = RecordMotionViewport();
+  late final AnimationController _reorder;
+  late final AnimationController _highlight;
+  Map<int, double> _moves = {};
+  int? _highlightedId;
+  int _filterRevision = 0;
   List<JournalNote> _notes = [];
   bool _busy = true, _failed = false, _vault = false;
   int _generation = 0;
@@ -25,12 +38,51 @@ class _NotesPageState extends State<NotesPage> {
   @override
   void initState() {
     super.initState();
+    _reorder = AnimationController(
+      vsync: this,
+      duration: recordReorderDuration,
+    );
+    _highlight = AnimationController(
+      vsync: this,
+      duration: recordHighlightDuration,
+    );
     _load();
     dataRevision.addListener(_restored);
   }
 
+  bool get _canAnimate =>
+      widget.active &&
+      !_vault &&
+      ModalRoute.isCurrentOf(context) != false &&
+      !MediaQuery.disableAnimationsOf(context);
+
+  @override
+  void didUpdateWidget(covariant NotesPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.active && oldWidget.active) _invalidateMotion();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_canAnimate) _resetMotion();
+  }
+
+  void _invalidateMotion() {
+    _filterRevision++;
+    _resetMotion();
+  }
+
+  void _resetMotion() {
+    _reorder.stop();
+    _highlight.stop();
+    _moves = {};
+    _highlightedId = null;
+  }
+
   void _restored() {
     if (mounted) {
+      _invalidateMotion();
       setState(() => _vault = false);
       _load();
     }
@@ -41,11 +93,18 @@ class _NotesPageState extends State<NotesPage> {
     _generation++;
     _debounce?.cancel();
     _search.dispose();
+    _reorder.dispose();
+    _highlight.dispose();
     dataRevision.removeListener(_restored);
     super.dispose();
   }
 
-  Future<void> _load({bool showProgress = true}) async {
+  Future<void> _load({
+    bool showProgress = true,
+    int? pinId,
+    int? savedId,
+    int? filterRevision,
+  }) async {
     final generation = ++_generation;
     if (showProgress) {
       setState(() {
@@ -56,11 +115,35 @@ class _NotesPageState extends State<NotesPage> {
     try {
       final notes = await widget.store.notes(_search.text);
       if (mounted && generation == _generation) {
+        final animate =
+            filterRevision != null &&
+            filterRevision == _filterRevision &&
+            _canAnimate;
+        final moves = animate && pinId != null
+            ? _pinMoves(notes, pinId)
+            : <int, double>{};
+        _resetMotion();
+        _viewport.retainRows(notes.map((n) => n.id).toSet());
         setState(() {
           _notes = notes;
+          _moves = moves;
           _busy = false;
           _failed = false;
         });
+        if (moves.isNotEmpty) _reorder.forward(from: 0);
+        if (animate && savedId != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted ||
+                generation != _generation ||
+                filterRevision != _filterRevision ||
+                !_canAnimate ||
+                !_viewport.isVisible(savedId)) {
+              return;
+            }
+            setState(() => _highlightedId = savedId);
+            _highlight.forward(from: 0);
+          });
+        }
       }
     } catch (_) {
       if (mounted && generation == _generation) {
@@ -72,12 +155,55 @@ class _NotesPageState extends State<NotesPage> {
     }
   }
 
+  Map<int, double> _pinMoves(List<JournalNote> next, int targetId) {
+    final bounds = _viewport.bounds;
+    final target = _viewport.rowBounds(targetId);
+    if (bounds == null || target == null || !bounds.overlaps(target)) return {};
+    final before = _notes.map((n) => n.id).toList();
+    final after = next.map((n) => n.id).toList();
+    if (before.length != after.length || !before.toSet().containsAll(after)) {
+      return {};
+    }
+    final positions = {for (var i = 0; i < after.length; i++) after[i]: i};
+    final moves = <int, double>{};
+    for (var i = 0; i < before.length; i++) {
+      final id = before[i];
+      final row = _viewport.rowBounds(id);
+      if (row == null || !bounds.overlaps(row) || positions[id] == i) continue;
+      var shift = 0.0;
+      var measured = true;
+      for (var j = 0; j < before.length; j++) {
+        final other = before[j];
+        if (i == j || (j < i) == (positions[other]! < positions[id]!)) continue;
+        final height = _viewport.rowBounds(other)?.height;
+        if (height == null) {
+          measured = false;
+          break;
+        }
+        shift += j < i ? height : -height;
+      }
+      if (measured &&
+          shift != 0 &&
+          bounds.overlaps(row.shift(Offset(0, -shift)))) {
+        moves[id] = shift;
+      }
+    }
+    return moves.containsKey(targetId) ? moves : {};
+  }
+
   Future<void> _togglePin(JournalNote note) async {
     if (!_pinWrites.add(note.id)) return;
+    final filter = _filterRevision;
     setState(() {});
     try {
       await widget.store.setPinned(note.id, !note.pinned);
-      if (mounted) await _load(showProgress: false);
+      if (mounted) {
+        await _load(
+          showProgress: false,
+          pinId: note.id,
+          filterRevision: filter,
+        );
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -90,13 +216,16 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   Future<void> _edit([JournalNote? note]) async {
-    final saved = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => NoteEditor(store: widget.store, note: note),
-      ),
+    setState(_invalidateMotion);
+    final filter = _filterRevision;
+    final route = MaterialPageRoute<int>(
+      builder: (_) => NoteEditor(store: widget.store, note: note),
     );
-    if (saved == true && mounted) _load();
+    final id = await Navigator.push(context, route);
+    await route.completed;
+    if (id != null && mounted) {
+      await _load(showProgress: false, savedId: id, filterRevision: filter);
+    }
   }
 
   @override
@@ -136,7 +265,10 @@ class _NotesPageState extends State<NotesPage> {
                     ),
                   ],
                   selected: {_vault},
-                  onSelectionChanged: (v) => setState(() => _vault = v.first),
+                  onSelectionChanged: (v) => setState(() {
+                    if (_vault != v.first) _invalidateMotion();
+                    _vault = v.first;
+                  }),
                 ),
               ),
             ),
@@ -152,6 +284,7 @@ class _NotesPageState extends State<NotesPage> {
                             controller: _search,
                             onChanged: (_) {
                               _generation++;
+                              setState(_invalidateMotion);
                               _debounce?.cancel();
                               _debounce = Timer(
                                 const Duration(milliseconds: 250),
@@ -167,6 +300,8 @@ class _NotesPageState extends State<NotesPage> {
                                       tooltip: '清空搜索',
                                       onPressed: () {
                                         _search.clear();
+                                        _invalidateMotion();
+                                        _debounce?.cancel();
                                         _load();
                                       },
                                       icon: const Icon(Icons.close),
@@ -227,13 +362,17 @@ class _NotesPageState extends State<NotesPage> {
         ),
       );
     }
-    return ListView.builder(
+    final indices = {for (var i = 0; i < _notes.length; i++) _notes[i].id: i};
+    final animate = _canAnimate;
+    final list = ListView.builder(
       key: const PageStorageKey('notes'),
+      findChildIndexCallback: (key) => _viewport.indexFor(key, indices),
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       itemCount: _notes.length,
       itemBuilder: (context, i) {
         final n = _notes[i];
-        return Card(
+        Widget card(Color? color) => Card(
+          color: color,
           margin: const EdgeInsets.only(bottom: 16),
           child: InkWell(
             borderRadius: BorderRadius.circular(14),
@@ -290,7 +429,38 @@ class _NotesPageState extends State<NotesPage> {
             ),
           ),
         );
+        final Widget content = animate && _highlightedId == n.id
+            ? AnimatedBuilder(
+                animation: _highlight,
+                builder: (_, _) => card(
+                  Color.lerp(
+                    journalSelection,
+                    journalPaper,
+                    Curves.easeOutCubic.transform(_highlight.value),
+                  ),
+                ),
+              )
+            : card(null);
+        final shift = animate ? _moves[n.id] : null;
+        return KeyedSubtree(
+          key: _viewport.rowKey(n.id),
+          child: shift == null
+              ? content
+              : AnimatedBuilder(
+                  animation: _reorder,
+                  child: content,
+                  builder: (_, child) => Transform.translate(
+                    offset: Offset(
+                      0,
+                      shift *
+                          (1 - Curves.easeOutCubic.transform(_reorder.value)),
+                    ),
+                    child: child,
+                  ),
+                ),
+        );
       },
     );
+    return KeyedSubtree(key: _viewport.key, child: list);
   }
 }

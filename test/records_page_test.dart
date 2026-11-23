@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:myflutter/journal/journal_theme.dart';
 import 'package:myflutter/records/record.dart';
 import 'package:myflutter/records/record_repository.dart';
 import 'package:myflutter/records/records_page.dart';
@@ -25,7 +26,14 @@ class MemoryRecords implements RecordRepository {
     requestedOffsets.add(offset);
     if (failRead) throw StateError('read failed');
     if (failMore && offset > 0) throw StateError('page failed');
-    return records
+    final sorted = [...records]
+      ..sort((a, b) {
+        final date = dateKey(b.date).compareTo(dateKey(a.date));
+        if (date != 0) return date;
+        final created = b.createdAt.compareTo(a.createdAt);
+        return created != 0 ? created : b.id!.compareTo(a.id!);
+      });
+    return sorted
         .where(
           (r) =>
               (keyword.trim().isNotEmpty || dateKey(r.date) == dateKey(date)) &&
@@ -51,11 +59,12 @@ class MemoryRecords implements RecordRepository {
       .toSet();
 
   @override
-  Future<void> add(LocalRecord record) async {
+  Future<int> add(LocalRecord record) async {
     if (failSave) throw StateError('save failed');
+    final id = record.id ?? records.length + 1;
     records.add(
       LocalRecord(
-        id: record.id ?? records.length + 1,
+        id: id,
         date: record.date,
         name: record.name,
         phone: record.phone,
@@ -64,6 +73,7 @@ class MemoryRecords implements RecordRepository {
         createdAt: record.createdAt,
       ),
     );
+    return id;
   }
 
   @override
@@ -87,6 +97,127 @@ Future<void> showPage(WidgetTester tester, RecordRepository repository) async {
 }
 
 void main() {
+  for (final reduced in [false, true]) {
+    testWidgets(
+      'successful deletion collapses the correct row (reduced=$reduced)',
+      (tester) async {
+        final repository = MemoryRecords();
+        for (var i = 1; i <= 3; i++) {
+          await repository.add(LocalRecord(date: DateTime.now(), name: '快递$i'));
+        }
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(disableAnimations: reduced),
+              child: child!,
+            ),
+            home: RecordsPage(repository: repository),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final last = find.text('姓名：快递1');
+        final initial = tester.getTopLeft(last).dy;
+        await tester.drag(
+          find.byKey(const ValueKey('courier-2')),
+          const Offset(-500, 0),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('delete-courier-2')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('确认删除'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 75));
+        final during = tester.getTopLeft(last).dy;
+        expect(repository.records, hasLength(2));
+        await tester.pumpAndSettle();
+        final after = tester.getTopLeft(last).dy;
+        expect(after, lessThan(initial));
+        if (reduced) {
+          expect(during, closeTo(after, 1));
+        } else {
+          expect(during, inExclusiveRange(after, initial));
+        }
+        expect(find.text('姓名：快递2'), findsNothing);
+        await tester.tap(find.text('撤销'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 30));
+        await tester.pump(const Duration(milliseconds: 75));
+        final duringUndo = tester.getTopLeft(last).dy;
+        if (reduced) {
+          expect(duringUndo, closeTo(initial, 1));
+        } else {
+          expect(duringUndo, inExclusiveRange(after, initial));
+        }
+        await tester.pumpAndSettle();
+        final restored = find.text('姓名：快递2');
+        expect(restored, findsOneWidget);
+        expect(
+          tester.getTopLeft(restored).dy,
+          lessThan(tester.getTopLeft(last).dy),
+        );
+        expect(tester.getTopLeft(last).dy, closeTo(initial, 1));
+        expect(repository.records, hasLength(3));
+      },
+    );
+  }
+
+  for (final reduced in [false, true]) {
+    testWidgets(
+      'only saved courier highlights and search stays (reduced=$reduced)',
+      (tester) async {
+        final repository = MemoryRecords();
+        await repository.add(LocalRecord(date: DateTime.now(), name: '取件单一'));
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: journalTheme(),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(disableAnimations: reduced),
+              child: child!,
+            ),
+            home: RecordsPage(repository: repository),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final search = find.byKey(const Key('record-search'));
+        await tester.enterText(search, '取件');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pump(const Duration(milliseconds: 350));
+        await tester.pumpAndSettle();
+
+        Color? cardColor(String title) => tester
+            .widget<Card>(
+              find.ancestor(
+                of: find.text('姓名：$title'),
+                matching: find.byType(Card),
+              ),
+            )
+            .color;
+
+        for (final name in ['取件单二', '取件单三']) {
+          await tester.tap(find.text(name == '取件单二' ? '添加' : '姓名：取件单二'));
+          await tester.pumpAndSettle();
+          await tester.enterText(find.byKey(const Key('record-name')), name);
+          await tester.ensureVisible(find.text('保存'));
+          await tester.tap(find.text('保存'));
+          for (
+            var frame = 0;
+            frame < 40 && find.text('姓名：$name').evaluate().isEmpty;
+            frame++
+          ) {
+            await tester.pump(const Duration(milliseconds: 16));
+          }
+          await tester.pump();
+          expect(cardColor(name), reduced ? isNull : journalSelection);
+          expect(cardColor('取件单一'), isNull);
+          expect(tester.widget<TextField>(search).controller!.text, '取件');
+          await tester.pump(const Duration(milliseconds: 300));
+          await tester.pumpAndSettle();
+          expect(cardColor(name), anyOf(isNull, journalPaper));
+        }
+      },
+    );
+  }
+
   testWidgets('loads 15 per page and retries failed continuation', (
     tester,
   ) async {
@@ -364,7 +495,7 @@ class DelayedRecords implements RecordRepository {
   }
 
   @override
-  Future<void> add(LocalRecord record) async {}
+  Future<int> add(LocalRecord record) async => 1;
   @override
   Future<void> update(LocalRecord record) async {}
   @override
