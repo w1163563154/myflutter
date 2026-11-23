@@ -6,6 +6,7 @@ const journalInk = Color(0xFF57422F);
 const journalAccent = Color(0xFFAD6143);
 const journalPaper = Color(0xFFFFFCF5);
 const journalBackground = Color(0xFFF5EDDF);
+const journalSelection = Color(0xFFEADDC9);
 String journalDate(DateTime d) =>
     '${d.month}月${d.day}日 · ${const ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][d.weekday - 1]}';
 String journalTime(DateTime d) =>
@@ -52,7 +53,7 @@ ThemeData journalTheme() => ThemeData(
   ),
   navigationBarTheme: const NavigationBarThemeData(
     backgroundColor: Color(0xFFF8F1E4),
-    indicatorColor: Color(0xFFEADDC9),
+    indicatorColor: journalSelection,
   ),
   datePickerTheme: DatePickerThemeData(
     backgroundColor: journalPaper,

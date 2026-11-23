@@ -108,6 +108,13 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('还没有笔记，记下第一件小事吧'), findsOneWidget);
+    final segments = tester.widget<SegmentedButton<bool>>(
+      find.byType(SegmentedButton<bool>),
+    );
+    expect(
+      segments.style?.backgroundColor?.resolve({WidgetState.selected}),
+      journalTheme().navigationBarTheme.indicatorColor,
+    );
     await tester.tap(find.text('写一笔'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('note-title')), '日常');

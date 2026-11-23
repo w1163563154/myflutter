@@ -119,6 +119,10 @@ class _NotesPageState extends State<NotesPage> {
                 width: double.infinity,
                 child: SegmentedButton<bool>(
                   showSelectedIcon: false,
+                  style: SegmentedButton.styleFrom(
+                    selectedBackgroundColor: journalSelection,
+                    selectedForegroundColor: journalInk,
+                  ),
                   segments: const [
                     ButtonSegment(
                       value: false,
