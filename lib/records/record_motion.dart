@@ -1,5 +1,44 @@
 import 'package:flutter/material.dart';
 
+import 'record_motion_preference_native.dart'
+    if (dart.library.js_interop) 'record_motion_preference_web.dart';
+
+/// Supplies the browser preference to the records lists. Native apps continue
+/// to get the system accessibility setting from MediaQuery.
+class RecordMotionPreference extends StatefulWidget {
+  const RecordMotionPreference({super.key, required this.child});
+  final Widget child;
+
+  static bool reduceMotionOf(BuildContext context) =>
+      MediaQuery.disableAnimationsOf(context) ||
+      context
+              .dependOnInheritedWidgetOfExactType<_MotionPreferenceScope>()
+              ?.notifier
+              ?.value ==
+          true;
+
+  @override
+  State<RecordMotionPreference> createState() => _RecordMotionPreferenceState();
+}
+
+class _RecordMotionPreferenceState extends State<RecordMotionPreference> {
+  final _preference = watchReducedMotion();
+
+  @override
+  void dispose() {
+    _preference.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      _MotionPreferenceScope(notifier: _preference, child: widget.child);
+}
+
+class _MotionPreferenceScope extends InheritedNotifier<ValueNotifier<bool>> {
+  const _MotionPreferenceScope({required super.notifier, required super.child});
+}
+
 const recordReorderDuration = Duration(milliseconds: 200);
 const recordVisibilityDuration = Duration(milliseconds: 180);
 const recordHighlightDuration = Duration(milliseconds: 300);

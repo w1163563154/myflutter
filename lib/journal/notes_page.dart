@@ -54,7 +54,7 @@ class _NotesPageState extends State<NotesPage> with TickerProviderStateMixin {
       widget.active &&
       !_vault &&
       ModalRoute.isCurrentOf(context) != false &&
-      !MediaQuery.disableAnimationsOf(context);
+      !RecordMotionPreference.reduceMotionOf(context);
 
   @override
   void didUpdateWidget(covariant NotesPage oldWidget) {

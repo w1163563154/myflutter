@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'journal/journal_store.dart';
 import 'journal/notes_page.dart';
 import 'journal/vault_service.dart';
+import 'records/record_motion.dart';
 import 'records/records_page.dart';
 
 class HomeShell extends StatefulWidget {
@@ -29,15 +30,17 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) => Scaffold(
     body: SafeArea(
-      child: IndexedStack(
-        index: _selected,
-        children: [
-          NotesPage(store: _store, vault: _vault, active: _selected == 0),
-          if (_courierVisited)
-            RecordsPage(active: _selected == 1)
-          else
-            const SizedBox.shrink(),
-        ],
+      child: RecordMotionPreference(
+        child: IndexedStack(
+          index: _selected,
+          children: [
+            NotesPage(store: _store, vault: _vault, active: _selected == 0),
+            if (_courierVisited)
+              RecordsPage(active: _selected == 1)
+            else
+              const SizedBox.shrink(),
+          ],
+        ),
       ),
     ),
     bottomNavigationBar: NavigationBar(

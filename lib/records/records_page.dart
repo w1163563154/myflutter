@@ -69,7 +69,7 @@ class _RecordsPageState extends State<RecordsPage>
   bool get _canAnimate =>
       widget.active &&
       ModalRoute.isCurrentOf(context) != false &&
-      !MediaQuery.disableAnimationsOf(context);
+      !RecordMotionPreference.reduceMotionOf(context);
 
   @override
   void didUpdateWidget(covariant RecordsPage oldWidget) {
